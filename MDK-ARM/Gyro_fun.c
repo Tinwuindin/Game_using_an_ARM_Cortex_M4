@@ -15,7 +15,7 @@ void Gyro_init(void){
 	HAL_Delay(20);
 	mandar_spi[0]=0x20; // Direccion a cual mandar
 	// PD bit set, zxy bits set
-	mandar_spi[1]=0x0f; // Dato a mandar 
+	mandar_spi[1]=0xAF; // Dato a mandar 
 	HAL_SPI_Transmit(&hspi5,mandar_spi,2,50);
 	HAL_GPIO_WritePin(GPIOC,GPIO_PIN_1,GPIO_PIN_SET); // Poner canal en espera
 	HAL_Delay(20);
@@ -24,8 +24,8 @@ void Gyro_init(void){
 	HAL_GPIO_WritePin(GPIOC,GPIO_PIN_1,GPIO_PIN_RESET); // Indicacion de inicio
 	HAL_Delay(20);
 	mandar_spi[0]=0x21; // Direccion a cual mandar
-	// Sin filtro pasa altas
-	mandar_spi[1]=0x00; // Dato a mandar 
+	// filtro pasa altas a 3.5Hz
+	mandar_spi[1]=0x21; // Dato a mandar 
 	HAL_SPI_Transmit(&hspi5,mandar_spi,2,50);
 	HAL_GPIO_WritePin(GPIOC,GPIO_PIN_1,GPIO_PIN_SET); // Poner canal en espera
 	HAL_Delay(20);
@@ -42,25 +42,15 @@ void Gyro_init(void){
 	HAL_GPIO_WritePin(GPIOC,GPIO_PIN_1,GPIO_PIN_SET); // Poner canal en espera
 	HAL_Delay(20);
 	
-	// Recolección de las muestras para la calibracion
-	uint32_t i;
-	int32_t temp_cali_x = 0;
-	int32_t temp_cali_y = 0;
-	int32_t temp_cali_z = 0;
-	
-	for(i = 0; i != cant_calib; i++){
-		// Medimos los valores actuales
-		Gyro_read();
-		
-		// Vaciamos los datos leidos a un buffer para calcular el ajuste y ruido promedio
-		temp_cali_x += gyro_data_crudo[0];
-		temp_cali_y += gyro_data_crudo[1];
-		temp_cali_z += gyro_data_crudo[2];
-		
-	}
-	ajuste_x = temp_cali_x / cant_calib;
-	ajuste_y = temp_cali_y / cant_calib;
-	ajuste_z = temp_cali_z / cant_calib;
+	/* Registro 23 */
+	HAL_GPIO_WritePin(GPIOC,GPIO_PIN_1,GPIO_PIN_RESET); // Indicacion de inicio
+	HAL_Delay(20);
+	mandar_spi[0]=0x24; // Direccion a cual mandar
+	//Activamos el pasa altos
+	mandar_spi[1]=0x10; // Dato a mandar 
+	HAL_SPI_Transmit(&hspi5,mandar_spi,2,50);
+	HAL_GPIO_WritePin(GPIOC,GPIO_PIN_1,GPIO_PIN_SET); // Poner canal en espera
+	HAL_Delay(20);
 	
 }
 
@@ -87,9 +77,9 @@ void Gyro_read(void){
 	
 	/* Se ajustan los valores de los registros a 16 bits */
 	
-	gyro_data_crudo[0] = (lect_buffer[0] | (lect_buffer[1] << 8)) - ajuste_x;
-	gyro_data_crudo[1] = (lect_buffer[2] | (lect_buffer[3] << 8)) - ajuste_y;
-	gyro_data_crudo[2] = (lect_buffer[4] | (lect_buffer[5] << 8)) - ajuste_z;
+	gyro_data_crudo[0] = (lect_buffer[0] | (lect_buffer[1] << 8));
+	gyro_data_crudo[1] = (lect_buffer[2] | (lect_buffer[3] << 8));
+	gyro_data_crudo[2] = (lect_buffer[4] | (lect_buffer[5] << 8));
 	
 	
 	

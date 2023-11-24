@@ -67,4 +67,8 @@ game_bolas\freertos.o: C:/Users/Pollo/STM32Cube/Repository/STM32Cube_FW_F4_V1.27
 game_bolas\freertos.o: C:/Users/Pollo/STM32Cube/Repository/STM32Cube_FW_F4_V1.27.1/Drivers/BSP/STM32F429I-Discovery/../../../Utilities/Fonts/fonts.h
 game_bolas\freertos.o: C:/Users/Pollo/STM32Cube/Repository/STM32Cube_FW_F4_V1.27.1/Drivers/BSP/STM32F429I-Discovery/../Components/ili9341/ili9341.h
 game_bolas\freertos.o: C:/Users/Pollo/STM32Cube/Repository/STM32Cube_FW_F4_V1.27.1/Drivers/BSP/STM32F429I-Discovery/../Components/ili9341/../Common/lcd.h
+game_bolas\freertos.o: C:/Users/Pollo/STM32Cube/Repository/STM32Cube_FW_F4_V1.27.1/Drivers/BSP/STM32F429I-Discovery/stm32f429i_discovery_ts.h
+game_bolas\freertos.o: C:/Users/Pollo/STM32Cube/Repository/STM32Cube_FW_F4_V1.27.1/Drivers/BSP/STM32F429I-Discovery/../Components/stmpe811/stmpe811.h
+game_bolas\freertos.o: C:/Users/Pollo/STM32Cube/Repository/STM32Cube_FW_F4_V1.27.1/Drivers/BSP/STM32F429I-Discovery/../Components/stmpe811/../Common/ts.h
+game_bolas\freertos.o: C:/Users/Pollo/STM32Cube/Repository/STM32Cube_FW_F4_V1.27.1/Drivers/BSP/STM32F429I-Discovery/../Components/stmpe811/../Common/io.h
 game_bolas\freertos.o: ../MDK-ARM/Screen_fun.h

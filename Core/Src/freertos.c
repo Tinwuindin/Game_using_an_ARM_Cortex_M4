@@ -32,6 +32,7 @@
 #include "rtc.h"
 #include "spi.h"
 #include "stm32f429i_discovery_lcd.h"
+#include "stm32f429i_discovery_ts.h"
 #include "Screen_fun.h"
 
 /* USER CODE END Includes */
@@ -44,6 +45,10 @@ typedef struct{
 	uint16_t ball_y;
 }ball_pos;
 
+typedef struct{
+	float x_data, y_data, z_data;
+}sensor_data;
+
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -55,7 +60,7 @@ typedef struct{
 #define friccion (-0.01)
 #define peso 5
 #define extend peso + 2
-#define sensibilidad 10
+#define sensibilidad 25
 
 /* USER CODE END PD */
 
@@ -68,13 +73,12 @@ typedef struct{
 /* USER CODE BEGIN Variables */
 
 extern uint8_t Linea;
-
 extern volatile uint8_t game_status;
 extern RTC_TimeTypeDef hora;
+uint16_t helper_x = 0, helper_y = 0;
+TS_StateTypeDef toque;
 
 
-	uint16_t helper_x = 0, helper_y = 0;
-	int16_t diff;
 	
 /* USER CODE END Variables */
 osThreadId GraphicsHandle;
@@ -309,15 +313,14 @@ void Logic_task(void const * argument)
 	// Variables para la colision
 	uint32_t col_value;
 	int16_t xc, yc, xb, yb;
-	
 	uint8_t ver_col = 0, hor_col = 0;
+	int16_t diff;
 	
 	// Variables para la velocidad
-	int16_t rel_x = 0, rel_y = 0, rel_z = 0;
-	int16_t x_speed = 0, y_speed = 0, z_speed = 0;
-	uint16_t prev_cir_x = 121, prev_cir_y = 292;
+	int16_t x_speed = 0, y_speed = 0;
 	ball_pos position;
 	
+	// Valores de inicio del juego
 	position.ball_x = 121;
 	position.ball_y = 292;
 	
@@ -329,49 +332,21 @@ void Logic_task(void const * argument)
 			//Recibimos los datos de velocidad en otra variable para evitar perder el origen
 			xQueueReceive(x_colaHandle, &x_speed,((TickType_t) 10));
 			xQueueReceive(y_colaHandle, &y_speed,((TickType_t) 10));
-			xQueueReceive(z_colaHandle, &rel_z,((TickType_t) 10));
 			
-			// Guardamos la velocidad sin modificar
-			rel_x += x_speed;
-			rel_y += y_speed;	
+			/* Limitador de velocidad con respecto al peso */
 			
-			// Pasamos los datos a la velocidad actual
-			x_speed += rel_x;
-			y_speed += rel_y;		
-			
-			// Logica del rozamiento
-			/*if(x_speed >= 1)
-				x_speed --;
-			else if(x_speed <= -1)
-				x_speed ++;
-			if(y_speed >= 1)
-				y_speed --;
-			else if (y_speed <= -1)
-				y_speed ++;
-			*/
-			
-			// Peso de la pelota
-			if(y_speed > peso){
-				y_speed = peso;
-				rel_y = peso;
-			}
-			if(y_speed < -peso){
-				y_speed = -peso;
-				rel_y = -peso;
-			}
-			if(x_speed > peso){
+			if(x_speed > peso)
 				x_speed = peso;
-				rel_x = peso;
-			}
-			if(x_speed < -peso){
+			else if (x_speed < -peso)
 				x_speed = -peso;
-				rel_x = -peso;
-			}
+			
+			if(y_speed > peso)
+				y_speed = peso;
+			else if (y_speed < -peso)
+				y_speed = -peso;
 			
 			/* Comprobar posible colision */
-			
-			// Primer cuadrante
-			// Horizontal
+			// Primer cuadrante Horizontal
 			i = 0;
 			while( (i <= (Cir_size)) && (hor_col == No_colision)){
 				for(j = 1; j <= (Cir_size + extend); j++){
@@ -594,25 +569,6 @@ void Logic_task(void const * argument)
 			// Mandamos los datos por la cola
 			xQueueSend(BallHandle, &position,((TickType_t) 10));
 			
-			/* Apoyo para perdida de origen */
-			diff = abs(position.ball_x - prev_cir_x);
-			if(diff < 1)
-				helper_x++;
-			if(helper_x >= 100){
-				rel_x = 0;
-				helper_x = 0;
-			}
-			diff = abs(position.ball_y - prev_cir_y);
-			if(diff < 1)
-				helper_y++;
-			if(helper_y >= 100){
-				rel_y = 0;
-				helper_y = 0;
-			}
-			
-			prev_cir_x = position.ball_x;
-			prev_cir_y = position.ball_y;
-			
 			/* Comprobar si se llego a la meta */
 			if(position.ball_y <= (Cir_size + 6)){
 				position.ball_x = 121;
@@ -639,8 +595,8 @@ void Com_task(void const * argument)
   
 	int16_t prevx = 0, prevy = 0, prevz = 0, buff_x, buff_y;
 	uint8_t lect_buffer[6];
-	uint8_t Registro_leer;
-	float x_d, y_d,z_d;
+	uint8_t Registro_leer;	
+	sensor_data lecture, buffer;
 	
   for(;;)
   {
@@ -701,43 +657,74 @@ void Com_task(void const * argument)
 		//Condicion de reposo
 		HAL_GPIO_WritePin(GPIOC,GPIO_PIN_1,GPIO_PIN_SET);	
 		
-		
 		/* Se ajustan los valores de los registros a 16 bits */
 		gyro_data_crudo[0] = (lect_buffer[0] | (lect_buffer[1] << 8)) - ajuste_x;
 		gyro_data_crudo[1] = (lect_buffer[2] | (lect_buffer[3] << 8)) - ajuste_y;
 		gyro_data_crudo[2] = (lect_buffer[4] | (lect_buffer[5] << 8)) - ajuste_z;
-		
+
 		// Ajustamos los valores para x 
-		if(((gyro_data_crudo[0] - prevx) < 15) || ((gyro_data_crudo[0] - prevx) > 15)){ // Si la difencia es mayor al ruido 
-			x_d = (float)(gyro_data_crudo[0] * L3GD20_SENSITIVITY_250DPS);
-			prevx = gyro_data_crudo[0];
+		if(((prevx - gyro_data_crudo[0]) < -15) || ((prevx -gyro_data_crudo[0]) > 15)){ // Si la difencia es mayor al ruido 
+			lecture.x_data = gyro_data_crudo[0];
+			buffer.x_data += lecture.x_data;
 		}else
-			x_d = 0;
+			buffer.x_data --;
+			lecture.x_data = (buffer.x_data * L3GD20_SENSITIVITY_250DPS);
+			prevx = gyro_data_crudo[0];
 		
 		// Ajustamos los valores para y
-		if(((gyro_data_crudo[1] - prevy) < 15) || ((gyro_data_crudo[1] - prevy) > 15)){
-			y_d = (float)(gyro_data_crudo[1] * L3GD20_SENSITIVITY_250DPS);
-			prevy = gyro_data_crudo[1];
+		if(((prevy - gyro_data_crudo[1]) < -15) || ((prevy -gyro_data_crudo[1]) > 15)){
+			lecture.y_data = gyro_data_crudo[1];
+			buffer.y_data += lecture.y_data;
 		}else 
-			y_d = 0;
+			buffer.y_data  --;
+			lecture.y_data  = (float)(buffer.y_data * L3GD20_SENSITIVITY_250DPS);
+			prevy = gyro_data_crudo[1];
 		
-		// Ajustamos los valores para z
-		if(((gyro_data_crudo[2] - prevz) < 15) || ((gyro_data_crudo[2] - prevz) > 15)){
-			z_d = (float)(gyro_data_crudo[2] * L3GD20_SENSITIVITY_250DPS);
-			prevz = gyro_data_crudo[2];
-		}
+		// Ajustamos los valores para z (No necesarios para la aplicacion)
+		/* 
+		if(((prevz - gyro_data_crudo[2]) < -15) || ((prevz -gyro_data_crudo[2]) > 15)){
+			lecture.z_data = gyro_data_crudo[2];
+			buffer.z_data += lecture.z_data;
+		}else 
+			buffer.z_data  --;
+			lecture.z_data  = (float)(buffer.z_data * L3GD20_SENSITIVITY_250DPS);
+			prevy = gyro_data_crudo[2];
+		*/
 		
-		// Convertimos los valores para recibirlos en la funcion de choques
+		/* Convertimos los valores para recibirlos en la funcion de choques */
 		// Giramos los datos X y Y
-		buff_x = (int16_t)(y_d / sensibilidad);
-		buff_y = (int16_t)(x_d / sensibilidad);
-		z_d = (int16_t)(z_d / sensibilidad);
+		buff_x = (int16_t)(lecture.y_data / sensibilidad);
+		buff_y = (int16_t)(lecture.x_data  / sensibilidad);
 		
-		// Mandamos los valores por la cola hacia el calculador de velocidad
+		// Mandamos los valores por la cola hacia la logica de choques
 		xQueueSend(x_colaHandle, &buff_x,((TickType_t) 10));
 		xQueueSend(y_colaHandle, &buff_y,((TickType_t) 10));
-		xQueueSend(z_colaHandle, &z_d,((TickType_t) 10));
-
+		
+		
+		BSP_TS_GetState(&toque);
+		if(toque.TouchDetected){
+			while(toque.TouchDetected){
+				BSP_TS_GetState(&toque);
+				HAL_Delay(200);
+			}
+			switch (game_status){
+				case running:
+					game_status = pause;
+					break;
+				case pause:
+					game_status = running;
+					break;
+				case end:
+					game_status = running;
+					break;
+				default:
+					game_status = running;
+					break;
+			}
+			
+		}
+		
+		
     osDelay(50);
   }
   /* USER CODE END Com_task */

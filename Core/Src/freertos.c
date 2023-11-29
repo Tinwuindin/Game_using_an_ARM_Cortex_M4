@@ -58,9 +58,9 @@ typedef struct{
 #define No_colision 0
 #define Cir_size 8
 #define friccion (-0.01)
-#define peso 5
-#define extend peso + 2
-#define sensibilidad 25
+#define peso 3
+#define extend (peso + 3)
+#define sensibilidad 50
 
 /* USER CODE END PD */
 
@@ -293,7 +293,7 @@ void Image_task(void const * argument)
 		}
 		
 		
-    osDelay(23);
+    osDelay(40);
   }
   /* USER CODE END Image_task */
 }
@@ -359,7 +359,7 @@ void Logic_task(void const * argument)
 					if(col_value == LCD_COLOR_BLACK){
 						xb = position.ball_x + j;
 						// Sacamos la diferencia de entre el circulo y el borde
-						diff = abs(xb - xc);
+						diff = xb - xc;
 						// Si la diferencia es menor al movimiento se marca como colision
 						if(diff <= x_speed){
 							hor_col = Colision_detected;
@@ -488,7 +488,7 @@ void Logic_task(void const * argument)
 					if(col_value == LCD_COLOR_BLACK){
 						yb = position.ball_y + j;
 						// Sacamos la diferencia de entre el circulo y el borde
-						diff = abs(yb - yc);
+						diff = yb - yc;
 						// Si la diferencia es menor al movimiento se marca como colision
 						if(diff <= y_speed){
 							ver_col = Colision_detected;
@@ -513,7 +513,7 @@ void Logic_task(void const * argument)
 					if(col_value == LCD_COLOR_BLACK){
 						xb = position.ball_x + j;
 						// Sacamos la diferencia de entre el circulo y el borde
-						diff = abs(xb - xc);
+						diff = xb - xc;
 						// Si la diferencia es menor al movimiento se marca como colision
 						if(diff <= x_speed){
 							hor_col = Colision_detected;
@@ -537,7 +537,7 @@ void Logic_task(void const * argument)
 					if(col_value == LCD_COLOR_BLACK){
 						yb = position.ball_y + j;
 						// Sacamos la diferencia de entre el circulo y el borde
-						diff = abs(yb - yc);
+						diff = yb - yc;
 						// Si la diferencia es menor al movimiento se marca como colision
 						if(diff <= y_speed){
 							ver_col = Colision_detected;
@@ -561,10 +561,10 @@ void Logic_task(void const * argument)
 				// Borramos la direccion del choque
 				hor_col = No_colision;
 			}
-				
+
 			// Ajustamos la posicion de la pelota
 			position.ball_x += x_speed;
-			position.ball_y += y_speed;
+			position.ball_y += y_speed;			
 			
 			// Mandamos los datos por la cola
 			xQueueSend(BallHandle, &position,((TickType_t) 10));
@@ -658,27 +658,41 @@ void Com_task(void const * argument)
 		HAL_GPIO_WritePin(GPIOC,GPIO_PIN_1,GPIO_PIN_SET);	
 		
 		/* Se ajustan los valores de los registros a 16 bits */
-		gyro_data_crudo[0] = (lect_buffer[0] | (lect_buffer[1] << 8)) - ajuste_x;
-		gyro_data_crudo[1] = (lect_buffer[2] | (lect_buffer[3] << 8)) - ajuste_y;
+		gyro_data_crudo[0] = (lect_buffer[0] | (lect_buffer[1] << 8)) + 40;
+		gyro_data_crudo[1] = (lect_buffer[2] | (lect_buffer[3] << 8)) + 30;
 		gyro_data_crudo[2] = (lect_buffer[4] | (lect_buffer[5] << 8)) - ajuste_z;
 
 		// Ajustamos los valores para x 
-		if(((prevx - gyro_data_crudo[0]) < -15) || ((prevx -gyro_data_crudo[0]) > 15)){ // Si la difencia es mayor al ruido 
+		if(((prevx - gyro_data_crudo[0]) < -40) || ((prevx -gyro_data_crudo[0]) > 50)){ // Si la difencia es mayor al ruido 
 			lecture.x_data = gyro_data_crudo[0];
 			buffer.x_data += lecture.x_data;
-		}else
-			buffer.x_data --;
+		}
+		if(buffer.x_data > 1500)
+			buffer.x_data -= 150;
+		else if(buffer.x_data < -1500)
+			buffer.x_data += 150;
+		//else
+			//buffer.x_data --;
 			lecture.x_data = (buffer.x_data * L3GD20_SENSITIVITY_250DPS);
 			prevx = gyro_data_crudo[0];
 		
 		// Ajustamos los valores para y
-		if(((prevy - gyro_data_crudo[1]) < -15) || ((prevy -gyro_data_crudo[1]) > 15)){
+		if(((prevy - gyro_data_crudo[1]) < -40) || ((prevy - gyro_data_crudo[1]) > 50)){
 			lecture.y_data = gyro_data_crudo[1];
 			buffer.y_data += lecture.y_data;
-		}else 
-			buffer.y_data  --;
+		}//else 
+			//buffer.y_data  --;
 			lecture.y_data  = (float)(buffer.y_data * L3GD20_SENSITIVITY_250DPS);
 			prevy = gyro_data_crudo[1];
+		//Linea = 0;
+		//printf("%f\n",buffer.y_data);
+		if(buffer.y_data > 1500)
+			buffer.y_data -= 150;
+		else if(buffer.y_data < -1500)
+			buffer.y_data += 150;
+		//Linea = 0;
+		//printf("%d\n",gyro_data_crudo[1]);
+		//printf("%d\n",(prevy - gyro_data_crudo[1]));
 		
 		// Ajustamos los valores para z (No necesarios para la aplicacion)
 		/* 
@@ -701,7 +715,7 @@ void Com_task(void const * argument)
 		xQueueSend(y_colaHandle, &buff_y,((TickType_t) 10));
 		
 		
-		BSP_TS_GetState(&toque);
+		/*BSP_TS_GetState(&toque);
 		if(toque.TouchDetected){
 			while(toque.TouchDetected){
 				BSP_TS_GetState(&toque);
@@ -722,10 +736,10 @@ void Com_task(void const * argument)
 					break;
 			}
 			
-		}
+		}*/
 		
 		
-    osDelay(50);
+    osDelay(10);
   }
   /* USER CODE END Com_task */
 }

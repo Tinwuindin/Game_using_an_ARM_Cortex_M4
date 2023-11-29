@@ -8,7 +8,7 @@
 
 /* Variables */
 volatile static int16_t gyro_data_crudo[3];
-volatile static int16_t ajuste_x = -30, ajuste_y = -10, ajuste_z = 0;
+volatile static int16_t ajuste_x = -30, ajuste_y = 0, ajuste_z = 0;
 
 
 void Gyro_init(void);

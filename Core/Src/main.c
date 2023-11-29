@@ -128,7 +128,7 @@ int main(void)
 	BSP_LCD_Clear(LCD_COLOR_WHITE);
 	BSP_TS_Init(240,320);
 	
-	Gyro_init();
+	//Gyro_init();
 	Linea = 6;
 	printf("Presione start\n");
 	
@@ -141,6 +141,7 @@ int main(void)
 	
 	BSP_LCD_Clear(LCD_COLOR_WHITE);
 	Map_draw();
+	Gyro_init();
   /* USER CODE END 2 */
 
   /* Call init function for freertos objects (in freertos.c) */

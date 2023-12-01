@@ -57,9 +57,16 @@ typedef struct{
 #define Colision_detected 1
 #define No_colision 0
 #define Cir_size 8
-#define friccion (-0.01)
-#define peso 3
-#define extend (peso + 3)
+
+/* Calculamos el coeficiente de rozamiento */
+#define m 3 // En gramos
+#define g 9.81 // Gravedad
+#define Us 1.6 // Friccion estatica del cristal
+#define N (m * g) // Fuerza normal
+#define Ff (Us * N) // Fuerza de friccion estatica
+#define Desaceleracion (float)((m * g - Ff) * 27) // Convertida a cm y por gramos
+float valorn = 0;
+#define extend (m + 3)
 #define sensibilidad 50
 
 /* USER CODE END PD */
@@ -335,15 +342,15 @@ void Logic_task(void const * argument)
 			
 			/* Limitador de velocidad con respecto al peso */
 			
-			if(x_speed > peso)
-				x_speed = peso;
-			else if (x_speed < -peso)
-				x_speed = -peso;
+			if(x_speed > m)
+				x_speed = m;
+			else if (x_speed < -m)
+				x_speed = -m;
 			
-			if(y_speed > peso)
-				y_speed = peso;
-			else if (y_speed < -peso)
-				y_speed = -peso;
+			if(y_speed > m)
+				y_speed = m;
+			else if (y_speed < -m)
+				y_speed = -m;
 			
 			/* Comprobar posible colision */
 			// Primer cuadrante Horizontal
@@ -551,13 +558,13 @@ void Logic_task(void const * argument)
 
 			if(ver_col == Colision_detected){
 				// Ajustamos la velocidad por el choque
-				y_speed *= friccion;
+				y_speed = 0;
 				// Borramos la direccion del choque
 				ver_col = No_colision;
 			}
 			if(hor_col == Colision_detected){
 				// Ajustamos la velocidad por el choque
-				x_speed *= friccion;
+				x_speed = 0;
 				// Borramos la direccion del choque
 				hor_col = No_colision;
 			}
@@ -596,8 +603,8 @@ void Com_task(void const * argument)
 	int16_t prevx = 0, prevy = 0, prevz = 0, buff_x, buff_y;
 	uint8_t lect_buffer[6];
 	uint8_t Registro_leer;	
-	sensor_data lecture, buffer;
-	
+	sensor_data lecture, buffer;	
+	valorn = Desaceleracion;
   for(;;)
   {
 		/* Obtener la velocidad del movimento */
@@ -667,13 +674,13 @@ void Com_task(void const * argument)
 			lecture.x_data = gyro_data_crudo[0];
 			buffer.x_data += lecture.x_data;
 		}else{
-			if((buffer.x_data > 1500))
-				buffer.x_data -= 300;
+			/* Logica del rozamiento con condicion de solo ejecutarse cerca del origen */
+			if((buffer.x_data > 1500)) // Esto dectacta un rango cerca de donde se presenta 1px de velocidad
+				buffer.x_data += Desaceleracion;
 			else if(buffer.x_data < -1500)
-				buffer.x_data += 300;
+				buffer.x_data -= Desaceleracion;
 		}
-		//else
-			//buffer.x_data --;
+		 /* Ajustamos los valores por la resolucion y sensibilidad */
 			lecture.x_data = (buffer.x_data * L3GD20_SENSITIVITY_250DPS);
 			prevx = gyro_data_crudo[0];
 		
@@ -683,11 +690,10 @@ void Com_task(void const * argument)
 			buffer.y_data += lecture.y_data;
 		}else{
 			if(buffer.y_data > 1500)
-				buffer.y_data -= 300;
+				buffer.y_data += Desaceleracion;
 			else if(buffer.y_data < -1500)
-				buffer.y_data += 300;			
-		}			
-			//buffer.y_data  --;
+				buffer.y_data -= Desaceleracion;			
+		}
 			lecture.y_data  = (float)(buffer.y_data * L3GD20_SENSITIVITY_250DPS);
 			prevy = gyro_data_crudo[1];
 		

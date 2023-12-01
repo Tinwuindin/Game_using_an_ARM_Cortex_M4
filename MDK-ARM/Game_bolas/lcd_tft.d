@@ -1,6 +1,6 @@
 game_bolas\lcd_tft.o: D:\Descargas\Redirect (complemento LCD)-20231003\LCD_TFT.C
 game_bolas\lcd_tft.o: D:\Descargas\Redirect (complemento LCD)-20231003\LCD_TFT.h
-game_bolas\lcd_tft.o: D:\Descargas\Redirect (complemento LCD)-20231003\RTL.h
+game_bolas\lcd_tft.o: D:\Descargas\Redirect (complemento LCD)-20231003\rtl.h
 game_bolas\lcd_tft.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h
 game_bolas\lcd_tft.o: ../Drivers/CMSIS/Device/ST/STM32F4xx/Include/stm32F4xx.h
 game_bolas\lcd_tft.o: ../Drivers/CMSIS/Device/ST/STM32F4xx/Include/stm32f429xx.h

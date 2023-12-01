@@ -293,7 +293,7 @@ void Image_task(void const * argument)
 		}
 		
 		
-    osDelay(40);
+    osDelay(17);
   }
   /* USER CODE END Image_task */
 }
@@ -576,7 +576,7 @@ void Logic_task(void const * argument)
 				game_status = end;
 			}
 		}
-    osDelay(50);
+    osDelay(30);
   }
   /* USER CODE END Logic_task */
 }
@@ -663,36 +663,33 @@ void Com_task(void const * argument)
 		gyro_data_crudo[2] = (lect_buffer[4] | (lect_buffer[5] << 8)) - ajuste_z;
 
 		// Ajustamos los valores para x 
-		if(((prevx - gyro_data_crudo[0]) < -40) || ((prevx -gyro_data_crudo[0]) > 50)){ // Si la difencia es mayor al ruido 
+		if(((prevx - gyro_data_crudo[0]) < -50) || ((prevx -gyro_data_crudo[0]) > 50)){ // Si la difencia es mayor al ruido 
 			lecture.x_data = gyro_data_crudo[0];
 			buffer.x_data += lecture.x_data;
+		}else{
+			if((buffer.x_data > 1500))
+				buffer.x_data -= 300;
+			else if(buffer.x_data < -1500)
+				buffer.x_data += 300;
 		}
-		if(buffer.x_data > 1500)
-			buffer.x_data -= 150;
-		else if(buffer.x_data < -1500)
-			buffer.x_data += 150;
 		//else
 			//buffer.x_data --;
 			lecture.x_data = (buffer.x_data * L3GD20_SENSITIVITY_250DPS);
 			prevx = gyro_data_crudo[0];
 		
 		// Ajustamos los valores para y
-		if(((prevy - gyro_data_crudo[1]) < -40) || ((prevy - gyro_data_crudo[1]) > 50)){
+		if(((prevy - gyro_data_crudo[1]) < -50) || ((prevy - gyro_data_crudo[1]) > 50)){
 			lecture.y_data = gyro_data_crudo[1];
 			buffer.y_data += lecture.y_data;
-		}//else 
+		}else{
+			if(buffer.y_data > 1500)
+				buffer.y_data -= 300;
+			else if(buffer.y_data < -1500)
+				buffer.y_data += 300;			
+		}			
 			//buffer.y_data  --;
 			lecture.y_data  = (float)(buffer.y_data * L3GD20_SENSITIVITY_250DPS);
 			prevy = gyro_data_crudo[1];
-		//Linea = 0;
-		//printf("%f\n",buffer.y_data);
-		if(buffer.y_data > 1500)
-			buffer.y_data -= 150;
-		else if(buffer.y_data < -1500)
-			buffer.y_data += 150;
-		//Linea = 0;
-		//printf("%d\n",gyro_data_crudo[1]);
-		//printf("%d\n",(prevy - gyro_data_crudo[1]));
 		
 		// Ajustamos los valores para z (No necesarios para la aplicacion)
 		/* 

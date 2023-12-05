@@ -500,16 +500,15 @@ void Map_draw(void){
 
 void Draw_obs(uint16_t x, uint16_t y, uint16_t x1, uint16_t y1, uint8_t dir){
 	uint8_t i;
-	
 	for(i = 0; i != grosor; i ++){
 		if(dir != Vertical_line){
 			y ++;
 			y1 ++;
-			BSP_LCD_DrawLine(x + offset, y + offset, x1 + offset, y1 + offset);
+			BSP_LCD_DrawLine(x, y, x1, y1);
 		}else{
 			x ++;
 			x1 ++;
-			BSP_LCD_DrawLine(x, y + 4, x1, y1 + 4);
+			BSP_LCD_DrawLine(x - offset, y + offset, x1 - offset, y1 + offset);
 		}
 		
 	}

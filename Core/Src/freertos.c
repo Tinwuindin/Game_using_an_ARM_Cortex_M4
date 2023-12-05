@@ -65,7 +65,7 @@ typedef struct{
 #define N (m * g) // Fuerza normal
 #define Ff (Us * N) // Fuerza de friccion estatica
 #define Desaceleracion (float)((m * g - Ff) * 27) // Convertida a cm y por gramos
-float valorn = 0;
+
 #define extend (m + 3)
 #define sensibilidad 50
 
@@ -604,7 +604,6 @@ void Com_task(void const * argument)
 	uint8_t lect_buffer[6];
 	uint8_t Registro_leer;	
 	sensor_data lecture, buffer;	
-	valorn = Desaceleracion;
   for(;;)
   {
 		/* Obtener la velocidad del movimento */

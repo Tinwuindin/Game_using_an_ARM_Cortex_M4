@@ -674,10 +674,11 @@ void Com_task(void const * argument)
 			buffer.x_data += lecture.x_data;
 		}else{
 			/* Logica del rozamiento con condicion de solo ejecutarse cerca del origen */
-			if((buffer.x_data > 1500)) // Esto dectacta un rango cerca de donde se presenta 1px de velocidad
+			if((buffer.x_data < 1500) && (buffer.x_data > 50)) // Esto dectacta un rango cerca de donde se presenta 1px de velocidad
 				buffer.x_data += Desaceleracion;
-			else if(buffer.x_data < -1500)
+			else if((buffer.x_data > -1500) && (buffer.x_data < -50)){
 				buffer.x_data -= Desaceleracion;
+			}
 		}
 		 /* Ajustamos los valores por la resolucion y sensibilidad */
 			lecture.x_data = (buffer.x_data * L3GD20_SENSITIVITY_250DPS);
@@ -688,9 +689,9 @@ void Com_task(void const * argument)
 			lecture.y_data = gyro_data_crudo[1];
 			buffer.y_data += lecture.y_data;
 		}else{
-			if(buffer.y_data > 1500)
+			if((buffer.y_data < 1500) && (buffer.y_data > 10))
 				buffer.y_data += Desaceleracion;
-			else if(buffer.y_data < -1500)
+			else if((buffer.y_data > -1500) && (buffer.y_data < -10))
 				buffer.y_data -= Desaceleracion;			
 		}
 			lecture.y_data  = (float)(buffer.y_data * L3GD20_SENSITIVITY_250DPS);

@@ -137,6 +137,7 @@ int main(void)
 	}
 	hora.Seconds = 0;
 	hora.Minutes = 0;
+	hora.Hours = 0;
 	HAL_RTC_SetTime(&hrtc, &hora, RTC_FORMAT_BIN);
 	
 	BSP_LCD_Clear(LCD_COLOR_WHITE);

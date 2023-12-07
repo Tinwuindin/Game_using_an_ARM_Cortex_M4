@@ -3,7 +3,7 @@ game_bolas\redirect.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdint.h
 game_bolas\redirect.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stdio.h
 game_bolas\redirect.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\rt_misc.h
 game_bolas\redirect.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\stddef.h
-game_bolas\redirect.o: D:\Descargas\Redirect (complemento LCD)-20231003\RTL.h
+game_bolas\redirect.o: D:\Descargas\Redirect (complemento LCD)-20231003\rtl.h
 game_bolas\redirect.o: C:/Users/Pollo/STM32Cube/Repository/STM32Cube_FW_F4_V1.27.1/Drivers/BSP/STM32F429I-Discovery/stm32f429i_discovery_lcd.h
 game_bolas\redirect.o: C:/Users/Pollo/STM32Cube/Repository/STM32Cube_FW_F4_V1.27.1/Drivers/BSP/STM32F429I-Discovery/stm32f429i_discovery.h
 game_bolas\redirect.o: ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h

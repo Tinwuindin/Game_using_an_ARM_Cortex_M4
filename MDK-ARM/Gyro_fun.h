@@ -12,4 +12,3 @@ volatile static int16_t ajuste_x = -30, ajuste_y = 0, ajuste_z = 0;
 
 
 void Gyro_init(void);
-void Gyro_read(void);

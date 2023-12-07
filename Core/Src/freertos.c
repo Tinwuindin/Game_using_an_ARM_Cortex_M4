@@ -611,54 +611,14 @@ void Com_task(void const * argument)
 		// Llamamos a los nuevos datos
 		// Condicion de inicio
 		HAL_GPIO_WritePin(GPIOC,GPIO_PIN_1,GPIO_PIN_RESET);
-		// registo a leer
-		Registro_leer = 0x28|0x80;
+		// registo a leer con autodesplazamiento
+		Registro_leer = 0x28|0xC0;
 		HAL_SPI_Transmit(&hspi5,&Registro_leer,1,50);
 		HAL_SPI_Receive(&hspi5,&lect_buffer[0],1,50);
-		//Condicion de reposo
-		HAL_GPIO_WritePin(GPIOC,GPIO_PIN_1,GPIO_PIN_SET);
-		
-		// Condicion de inicio
-		HAL_GPIO_WritePin(GPIOC,GPIO_PIN_1,GPIO_PIN_RESET);
-		// registo a leer
-		Registro_leer = 0x29|0x80;
-		HAL_SPI_Transmit(&hspi5,&Registro_leer,1,50);
 		HAL_SPI_Receive(&hspi5,&lect_buffer[1],1,50);
-		//Condicion de reposo
-		HAL_GPIO_WritePin(GPIOC,GPIO_PIN_1,GPIO_PIN_SET);
-		
-		// Condicion de inicio
-		HAL_GPIO_WritePin(GPIOC,GPIO_PIN_1,GPIO_PIN_RESET);
-		// registo a leer
-		Registro_leer = 0x2A|0x80;
-		HAL_SPI_Transmit(&hspi5,&Registro_leer,1,50);
 		HAL_SPI_Receive(&hspi5,&lect_buffer[2],1,50);
-		//Condicion de reposo
-		HAL_GPIO_WritePin(GPIOC,GPIO_PIN_1,GPIO_PIN_SET);
-		
-		// Condicion de inicio
-		HAL_GPIO_WritePin(GPIOC,GPIO_PIN_1,GPIO_PIN_RESET);
-		// registo a leer
-		Registro_leer = 0x2B|0x80;
-		HAL_SPI_Transmit(&hspi5,&Registro_leer,1,50);
 		HAL_SPI_Receive(&hspi5,&lect_buffer[3],1,50);
-		//Condicion de reposo
-		HAL_GPIO_WritePin(GPIOC,GPIO_PIN_1,GPIO_PIN_SET);
-		
-		// Condicion de inicio
-		HAL_GPIO_WritePin(GPIOC,GPIO_PIN_1,GPIO_PIN_RESET);
-		// registo a leer
-		Registro_leer = 0x2C|0x80;
-		HAL_SPI_Transmit(&hspi5,&Registro_leer,1,50);
 		HAL_SPI_Receive(&hspi5,&lect_buffer[4],1,50);
-		//Condicion de reposo
-		HAL_GPIO_WritePin(GPIOC,GPIO_PIN_1,GPIO_PIN_SET);
-
-		// Condicion de inicio
-		HAL_GPIO_WritePin(GPIOC,GPIO_PIN_1,GPIO_PIN_RESET);
-		// registo a leer
-		Registro_leer = 0x2D|0x80;
-		HAL_SPI_Transmit(&hspi5,&Registro_leer,1,50);
 		HAL_SPI_Receive(&hspi5,&lect_buffer[5],1,50);
 		//Condicion de reposo
 		HAL_GPIO_WritePin(GPIOC,GPIO_PIN_1,GPIO_PIN_SET);	
@@ -666,12 +626,13 @@ void Com_task(void const * argument)
 		/* Se ajustan los valores de los registros a 16 bits */
 		gyro_data_crudo[0] = (lect_buffer[0] | (lect_buffer[1] << 8)) + 40;
 		gyro_data_crudo[1] = (lect_buffer[2] | (lect_buffer[3] << 8)) + 30;
-		gyro_data_crudo[2] = (lect_buffer[4] | (lect_buffer[5] << 8)) - ajuste_z;
+		
+		// Z no usado
+		//gyro_data_crudo[2] = (lect_buffer[4] | (lect_buffer[5] << 8)) - ajuste_z;
 
 		// Ajustamos los valores para x 
 		if(((prevx - gyro_data_crudo[0]) < -50) || ((prevx -gyro_data_crudo[0]) > 50)){ // Si la difencia es mayor al ruido 
-			lecture.x_data = gyro_data_crudo[0];
-			buffer.x_data += lecture.x_data;
+			buffer.x_data += gyro_data_crudo[0];
 		}else{
 			/* Logica del rozamiento con condicion de solo ejecutarse cerca del origen */
 			if((buffer.x_data < 1500) && (buffer.x_data > 50)) // Esto dectacta un rango cerca de donde se presenta 1px de velocidad
@@ -680,22 +641,32 @@ void Com_task(void const * argument)
 				buffer.x_data -= Desaceleracion;
 			}
 		}
+		// Eliminar valores fuera del rango comun
+		if((buffer.x_data > 100000))
+			buffer.x_data -= 100000;
+		else if (buffer.x_data < -100000)
+			buffer.x_data += 100000;
+		
 		 /* Ajustamos los valores por la resolucion y sensibilidad */
 			lecture.x_data = (buffer.x_data * L3GD20_SENSITIVITY_250DPS);
 			prevx = gyro_data_crudo[0];
 		
 		// Ajustamos los valores para y
 		if(((prevy - gyro_data_crudo[1]) < -50) || ((prevy - gyro_data_crudo[1]) > 50)){
-			lecture.y_data = gyro_data_crudo[1];
-			buffer.y_data += lecture.y_data;
+			buffer.y_data += gyro_data_crudo[1];
 		}else{
-			if((buffer.y_data < 1500) && (buffer.y_data > 10))
+			if((buffer.y_data < 1500) && (buffer.y_data > 50))
 				buffer.y_data += Desaceleracion;
-			else if((buffer.y_data > -1500) && (buffer.y_data < -10))
+			else if((buffer.y_data > -1500) && (buffer.y_data < -50))
 				buffer.y_data -= Desaceleracion;			
 		}
-			lecture.y_data  = (float)(buffer.y_data * L3GD20_SENSITIVITY_250DPS);
-			prevy = gyro_data_crudo[1];
+		if((buffer.y_data > 100000))
+			buffer.y_data -= 100000;
+		else if (buffer.y_data < -100000)
+			buffer.y_data += 100000;
+		
+		lecture.y_data  = (float)(buffer.y_data * L3GD20_SENSITIVITY_250DPS);
+		prevy = gyro_data_crudo[1];
 		
 		// Ajustamos los valores para z (No necesarios para la aplicacion)
 		/* 
@@ -709,6 +680,7 @@ void Com_task(void const * argument)
 		*/
 		
 		/* Convertimos los valores para recibirlos en la funcion de choques */
+		
 		// Giramos los datos X y Y
 		buff_x = (int16_t)(lecture.y_data / sensibilidad);
 		buff_y = (int16_t)(lecture.x_data  / sensibilidad);
@@ -742,7 +714,7 @@ void Com_task(void const * argument)
 		}*/
 		
 		
-    osDelay(10);
+    osDelay(1);
   }
   /* USER CODE END Com_task */
 }

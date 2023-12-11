@@ -49,7 +49,7 @@
 extern uint8_t Linea;
 RTC_TimeTypeDef hora;
 volatile uint8_t game_status = 0;
-	
+TS_StateTypeDef touch;
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
@@ -133,7 +133,13 @@ int main(void)
 	printf("Presione start\n");
 	
 	while(game_status != running){
-		
+		BSP_TS_GetState(&touch);
+		if(touch.TouchDetected){
+			while(touch.TouchDetected){
+				BSP_TS_GetState(&touch);
+				game_status = running;
+			}
+		}
 	}
 	hora.Seconds = 0;
 	hora.Minutes = 0;

@@ -66,8 +66,8 @@ typedef struct{
 #define Ff (Us * N) // Fuerza de friccion estatica
 #define Desaceleracion (float)((m * g - Ff) * 27) // Convertida a cm y por gramos
 
-#define extend (m + 3)
-#define sensibilidad 50
+#define extend (m + 4)
+#define sensibilidad 100
 
 /* USER CODE END PD */
 
@@ -341,7 +341,6 @@ void Logic_task(void const * argument)
 			xQueueReceive(y_colaHandle, &y_speed,((TickType_t) 10));
 			
 			/* Limitador de velocidad con respecto al peso */
-			
 			if(x_speed > m)
 				x_speed = m;
 			else if (x_speed < -m)
@@ -583,7 +582,7 @@ void Logic_task(void const * argument)
 				game_status = end;
 			}
 		}
-    osDelay(30);
+    osDelay(25);
   }
   /* USER CODE END Logic_task */
 }
@@ -600,12 +599,17 @@ void Com_task(void const * argument)
   /* USER CODE BEGIN Com_task */
   /* Infinite loop */
   
-	int16_t prevx = 0, prevy = 0, prevz = 0, buff_x, buff_y;
+	int16_t prevx = 0, prevy = 0, buff_x, buff_y;
 	uint8_t lect_buffer[6];
 	uint8_t Registro_leer;	
 	sensor_data lecture, buffer;	
   for(;;)
   {
+		if(game_status == end){
+			buffer.x_data = 0;
+			buffer.y_data = 0;
+		}
+		
 		/* Obtener la velocidad del movimento */
 		
 		// Llamamos a los nuevos datos
@@ -614,74 +618,71 @@ void Com_task(void const * argument)
 		// registo a leer con autodesplazamiento
 		Registro_leer = 0x28|0xC0;
 		HAL_SPI_Transmit(&hspi5,&Registro_leer,1,50);
-		HAL_SPI_Receive(&hspi5,&lect_buffer[0],1,50);
-		HAL_SPI_Receive(&hspi5,&lect_buffer[1],1,50);
-		HAL_SPI_Receive(&hspi5,&lect_buffer[2],1,50);
-		HAL_SPI_Receive(&hspi5,&lect_buffer[3],1,50);
-		HAL_SPI_Receive(&hspi5,&lect_buffer[4],1,50);
-		HAL_SPI_Receive(&hspi5,&lect_buffer[5],1,50);
+		for(uint8_t i = 0; i != 4; i++){
+			HAL_SPI_Receive(&hspi5,&lect_buffer[i],1,50);
+		}
 		//Condicion de reposo
 		HAL_GPIO_WritePin(GPIOC,GPIO_PIN_1,GPIO_PIN_SET);	
 		
 		/* Se ajustan los valores de los registros a 16 bits */
-		gyro_data_crudo[0] = (lect_buffer[0] | (lect_buffer[1] << 8)) + 40;
-		gyro_data_crudo[1] = (lect_buffer[2] | (lect_buffer[3] << 8)) + 30;
+		gyro_data_crudo[0] = (int16_t)(lect_buffer[0] | (lect_buffer[1] << 8));
+		gyro_data_crudo[1] = (int16_t)(lect_buffer[2] | (lect_buffer[3] << 8));
 		
-		// Z no usado
-		//gyro_data_crudo[2] = (lect_buffer[4] | (lect_buffer[5] << 8)) - ajuste_z;
-
-		// Ajustamos los valores para x 
-		if(((prevx - gyro_data_crudo[0]) < -50) || ((prevx -gyro_data_crudo[0]) > 50)){ // Si la difencia es mayor al ruido 
+		// Ajustamos los valores para X
+		if((prevx > gyro_data_crudo[0]) && ((prevx - gyro_data_crudo[0]) > 325)){
 			buffer.x_data += gyro_data_crudo[0];
+			prevx = gyro_data_crudo[0];
+			BSP_LED_On(LED3);
+			BSP_LED_Off(LED4);
+		}else if((prevx < gyro_data_crudo[0]) && ((gyro_data_crudo[0] - prevx) > 275)){
+			buffer.x_data += gyro_data_crudo[0];
+			prevx = gyro_data_crudo[0];
+			BSP_LED_Off(LED3);
+			BSP_LED_Toggle(LED4);
 		}else{
+			buffer.x_data += (gyro_data_crudo[0] / 50);
+			BSP_LED_Off(LED3);
+			BSP_LED_Off(LED4);
 			/* Logica del rozamiento con condicion de solo ejecutarse cerca del origen */
-			if((buffer.x_data < 1500) && (buffer.x_data > 50)) // Esto dectacta un rango cerca de donde se presenta 1px de velocidad
+			if((buffer.x_data < 5500) && (buffer.x_data > 100)) // Esto dectacta un rango cerca de donde se presenta 1px de velocidad
 				buffer.x_data += Desaceleracion;
-			else if((buffer.x_data > -1500) && (buffer.x_data < -50)){
+			else if((buffer.x_data > -5500) && (buffer.x_data < -100)){
 				buffer.x_data -= Desaceleracion;
 			}
 		}
-		// Eliminar valores fuera del rango comun
-		if((buffer.x_data > 100000))
-			buffer.x_data -= 100000;
-		else if (buffer.x_data < -100000)
-			buffer.x_data += 100000;
 		
-		 /* Ajustamos los valores por la resolucion y sensibilidad */
-			lecture.x_data = (buffer.x_data * L3GD20_SENSITIVITY_250DPS);
-			prevx = gyro_data_crudo[0];
-		
-		// Ajustamos los valores para y
-		if(((prevy - gyro_data_crudo[1]) < -50) || ((prevy - gyro_data_crudo[1]) > 50)){
+		// Ajustamos los valores para Y
+		if((prevy > gyro_data_crudo[1]) && ((prevy - gyro_data_crudo[1]) > 325)){
 			buffer.y_data += gyro_data_crudo[1];
+			prevy = gyro_data_crudo[1];
+		}else if((prevy < gyro_data_crudo[1]) && ((gyro_data_crudo[1] - prevy) > 325)){
+			buffer.y_data += gyro_data_crudo[1];
+			prevy = gyro_data_crudo[1];
 		}else{
-			if((buffer.y_data < 1500) && (buffer.y_data > 50))
+			buffer.y_data += (gyro_data_crudo[1] / 50);
+			if((buffer.y_data < 5500) && (buffer.y_data > 100))
 				buffer.y_data += Desaceleracion;
-			else if((buffer.y_data > -1500) && (buffer.y_data < -50))
+			else if((buffer.y_data > -5500) && (buffer.y_data < -100))
 				buffer.y_data -= Desaceleracion;			
 		}
-		if((buffer.y_data > 100000))
-			buffer.y_data -= 100000;
-		else if (buffer.y_data < -100000)
-			buffer.y_data += 100000;
 		
-		lecture.y_data  = (float)(buffer.y_data * L3GD20_SENSITIVITY_250DPS);
-		prevy = gyro_data_crudo[1];
+		// Eliminamos posibles lecturas extremadamente erroneas
+		if(buffer.x_data > 60000)
+			buffer.x_data -= 10000;
+		else if (buffer.x_data < -60000)
+			buffer.x_data += 10000;
 		
-		// Ajustamos los valores para z (No necesarios para la aplicacion)
-		/* 
-		if(((prevz - gyro_data_crudo[2]) < -15) || ((prevz -gyro_data_crudo[2]) > 15)){
-			lecture.z_data = gyro_data_crudo[2];
-			buffer.z_data += lecture.z_data;
-		}else 
-			buffer.z_data  --;
-			lecture.z_data  = (float)(buffer.z_data * L3GD20_SENSITIVITY_250DPS);
-			prevy = gyro_data_crudo[2];
-		*/
+		if(buffer.y_data > 60000)
+			buffer.y_data -= 10000;
+		else if (buffer.y_data < -60000)
+			buffer.y_data += 10000;
+		
+		/* Ajustamos los valores por la resolucion y sensibilidad */
+		lecture.x_data = (float)(buffer.x_data * L3GD20_SENSITIVITY_250DPS);		
+		lecture.y_data = (float)(buffer.y_data * L3GD20_SENSITIVITY_250DPS);
 		
 		/* Convertimos los valores para recibirlos en la funcion de choques */
-		
-		// Giramos los datos X y Y
+		// Giramos los datos X y Y y ajustamos por la sensibilidad
 		buff_x = (int16_t)(lecture.y_data / sensibilidad);
 		buff_y = (int16_t)(lecture.x_data  / sensibilidad);
 		
@@ -689,32 +690,7 @@ void Com_task(void const * argument)
 		xQueueSend(x_colaHandle, &buff_x,((TickType_t) 10));
 		xQueueSend(y_colaHandle, &buff_y,((TickType_t) 10));
 		
-		
-		/*BSP_TS_GetState(&toque);
-		if(toque.TouchDetected){
-			while(toque.TouchDetected){
-				BSP_TS_GetState(&toque);
-				HAL_Delay(200);
-			}
-			switch (game_status){
-				case running:
-					game_status = pause;
-					break;
-				case pause:
-					game_status = running;
-					break;
-				case end:
-					game_status = running;
-					break;
-				default:
-					game_status = running;
-					break;
-			}
-			
-		}*/
-		
-		
-    osDelay(1);
+    osDelay(5);
   }
   /* USER CODE END Com_task */
 }

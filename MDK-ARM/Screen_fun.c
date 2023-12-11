@@ -7,6 +7,7 @@ void Map_draw(void){
 	/* Funcion para iniciar el juego */
 	
 	/* Dibujado del mapa */
+	BSP_LCD_SelectLayer(LCD_BACKGROUND_LAYER);
 	BSP_LCD_SetTextColor(LCD_COLOR_BLACK);
 	// Marco de la pantalla
 	BSP_LCD_FillRect(0, 0, 4, 320);
@@ -496,6 +497,7 @@ void Map_draw(void){
 	y1 = (12 * rec_size);
 	Draw_obs(x, y, x1, y1, Diagonal_line);
 	
+	BSP_LCD_SelectLayer(LCD_FOREGROUND_LAYER);
 }
 
 void Draw_obs(uint16_t x, uint16_t y, uint16_t x1, uint16_t y1, uint8_t dir){
